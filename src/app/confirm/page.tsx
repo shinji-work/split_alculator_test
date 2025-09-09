@@ -18,6 +18,7 @@ interface Settings {
 
 export default function ConfirmPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -30,7 +31,12 @@ export default function ConfirmPage() {
         console.warn('Failed to load settings from localStorage:', error)
       }
     }
+    setLoaded(true)
   }, [])
+
+  if (!loaded) {
+    return null
+  }
 
   if (!settings) {
     return (
