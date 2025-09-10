@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Calculator, Users, Settings, Share2 } from 'lucide-react'
+import { Calculator, Users, Settings, Share2, QrCode, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { calculateSplit } from '@/lib/calculator'
+import { resultToCsv } from '@/lib/csv'
 import { CalculationInput, CalculationResult, Person, SplitMethod, RoundingMethod } from '@/lib/types'
 
 const initialPeople: Person[] = [
@@ -129,6 +130,20 @@ export default function Home() {
         console.error('コピーに失敗しました:', error)
       }
     }
+  }
+
+  const handleExportCSV = () => {
+    if (!result) return
+    const csv = resultToCsv(result)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'split-result.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -254,14 +269,20 @@ export default function Home() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 計算結果
-                <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  共有
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleShare}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    共有
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                    <Download className="h-4 w-4 mr-2" />
+                    CSV
+                  </Button>
+                </div>
               </CardTitle>
               <CardDescription>
                 合計: ¥{result.totalWithCharge.toLocaleString()}
-                （基本料金: ¥{result.breakdown.baseAmount.toLocaleString()} + 
+                （基本料金: ¥{result.breakdown.baseAmount.toLocaleString()} +
                 サービス料: ¥{result.breakdown.serviceCharge.toLocaleString()}）
               </CardDescription>
             </CardHeader>
