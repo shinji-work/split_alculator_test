@@ -20,7 +20,7 @@ export function calculateSplit(input: CalculationInput): CalculationResult {
       perPersonAmounts = calculateRatioSplit(people, totalWithCharge)
       break
     case 'manual':
-      perPersonAmounts = calculateManualSplit(people)
+      perPersonAmounts = calculateManualSplit(people, totalWithCharge)
       break
     case 'item':
       perPersonAmounts = calculateItemSplit(people, items || [], serviceChargeAmount)
@@ -66,13 +66,17 @@ function calculateEqualSplit(
 }
 
 function calculateRatioSplit(
-  people: Array<{ id: string; name: string; ratio?: number }>, 
+  people: Array<{ id: string; name: string; ratio?: number }>,
   total: number
 ): Array<{ personId: string; name: string; amount: number; roundedAmount: number }> {
-  const totalRatio = people.reduce((sum, person) => sum + (person.ratio || 1), 0)
-  
+  const totalRatio = people.reduce((sum, person) => sum + (person.ratio || 0), 0)
+
+  if (totalRatio === 0) {
+    return calculateEqualSplit(people, total)
+  }
+
   return people.map(person => {
-    const ratio = person.ratio || 1
+    const ratio = person.ratio || 0
     const amount = (total * ratio) / totalRatio
     return {
       personId: person.id,
@@ -84,14 +88,22 @@ function calculateRatioSplit(
 }
 
 function calculateManualSplit(
-  people: Array<{ id: string; name: string; amount?: number }>
+  people: Array<{ id: string; name: string; amount?: number }>,
+  total: number
 ): Array<{ personId: string; name: string; amount: number; roundedAmount: number }> {
-  return people.map(person => ({
-    personId: person.id,
-    name: person.name,
-    amount: person.amount || 0,
-    roundedAmount: person.amount || 0
-  }))
+  const assignedAmounts = people.slice(0, -1).reduce((sum, person) => sum + (person.amount || 0), 0)
+  const remainingAmount = total - assignedAmounts
+
+  return people.map((person, index) => {
+    const isLastPerson = index === people.length - 1
+    const amount = isLastPerson ? remainingAmount : person.amount || 0
+    return {
+      personId: person.id,
+      name: person.name,
+      amount,
+      roundedAmount: amount
+    }
+  })
 }
 
 function calculateItemSplit(

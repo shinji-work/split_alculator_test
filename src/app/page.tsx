@@ -107,6 +107,18 @@ export default function Home() {
     ))
   }
 
+  const updatePersonRatio = (id: string, ratio: number) => {
+    setPeople(people.map(person =>
+      person.id === id ? { ...person, ratio } : person
+    ))
+  }
+
+  const updatePersonAmount = (id: string, amount: number) => {
+    setPeople(people.map(person =>
+      person.id === id ? { ...person, amount } : person
+    ))
+  }
+
   const handleShare = async () => {
     if (!result) return
 
@@ -228,14 +240,52 @@ export default function Home() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-2">分割方法</label>
+              <select
+                value={splitMethod}
+                onChange={(e) => setSplitMethod(e.target.value as SplitMethod)}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background"
+              >
+                <option value="equal">均等割り</option>
+                <option value="ratio">比率割り</option>
+                <option value="manual">金額指定</option>
+              </select>
+            </div>
             {people.map((person, index) => (
-              <div key={person.id} className="flex gap-2">
+              <div key={person.id} className="flex gap-2 items-center">
                 <Input
                   value={person.name}
                   onChange={(e) => updatePersonName(person.id, e.target.value)}
                   placeholder={`参加者${index + 1}`}
                   className="flex-1"
                 />
+                {splitMethod === 'ratio' && (
+                  <div className="flex items-center">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={person.ratio || ''}
+                      onChange={(e) => updatePersonRatio(person.id, Number(e.target.value))}
+                      placeholder="比率"
+                      className="w-20 text-right"
+                    />
+                    <span className="ml-1">%</span>
+                  </div>
+                )}
+                {splitMethod === 'manual' && (
+                  <div className="flex items-center">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={person.amount || ''}
+                      onChange={(e) => updatePersonAmount(person.id, Number(e.target.value))}
+                      placeholder="金額"
+                      className="w-28 text-right"
+                    />
+                    <span className="ml-1">円</span>
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   size="icon"
