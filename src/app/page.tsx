@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calculator, Users, Settings, Share2, QrCode } from 'lucide-react'
+import Link from 'next/link'
+import { Calculator, Users, Settings, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +32,7 @@ export default function Home() {
         const saved = localStorage.getItem('split-calculator-settings')
         if (saved) {
           const settings = JSON.parse(saved)
+          setTotalAmount(settings.totalAmount || 0)
           setServiceChargeType(settings.serviceChargeType || 'percentage')
           setServiceChargeValue(settings.serviceChargeValue || 10)
           setSplitMethod(settings.splitMethod || 'equal')
@@ -49,6 +51,7 @@ export default function Home() {
     if (isLoaded && typeof window !== 'undefined') {
       try {
         const settings = {
+          totalAmount,
           serviceChargeType,
           serviceChargeValue,
           splitMethod,
@@ -60,7 +63,7 @@ export default function Home() {
         console.warn('Failed to save settings to localStorage:', error)
       }
     }
-  }, [isLoaded, serviceChargeType, serviceChargeValue, splitMethod, roundingMethod, people])
+  }, [isLoaded, totalAmount, serviceChargeType, serviceChargeValue, splitMethod, roundingMethod, people])
 
   const handleCalculate = () => {
     if (totalAmount <= 0 || people.length === 0) {
@@ -233,6 +236,11 @@ export default function Home() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* 入力内容確認ボタン */}
+        <Button asChild variant="outline" className="w-full">
+          <Link href="/confirm">入力内容確認</Link>
+        </Button>
 
         {/* 計算ボタン */}
         <Button onClick={handleCalculate} size="lg" className="w-full">
