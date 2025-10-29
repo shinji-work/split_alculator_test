@@ -72,6 +72,14 @@ export default function Home() {
       return
     }
 
+    if (splitMethod === 'ratio') {
+      const totalRatio = people.reduce((sum, person) => sum + (person.ratio || 0), 0)
+      if (totalRatio > 101) {
+        alert('比率の合計が101%を超えています。')
+        return
+      }
+    }
+
     const input: CalculationInput = {
       totalAmount,
       people,
