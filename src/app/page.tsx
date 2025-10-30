@@ -426,6 +426,19 @@ export default function Home() {
             </Button>
           </div>
           <div className="space-y-6">
+            {!result && (
+              <Card className="h-full flex flex-col items-center justify-center text-center p-8">
+                <CardHeader>
+                  <CardTitle>結果はここに表示されます</CardTitle>
+                  <CardDescription>
+                    左側のフォームに入力して、「計算する」ボタンを押してください。
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Calculator className="h-16 w-16 text-muted-foreground" />
+                </CardContent>
+              </Card>
+            )}
             {result && (
               <Card>
                 <CardHeader>
