@@ -36,7 +36,6 @@ export default function Home() {
           setTotalAmount(settings.totalAmount || 0)
           setServiceChargeType(settings.serviceChargeType || 'percentage')
           setServiceChargeValue(settings.serviceChargeValue || 10)
-          setSplitMethod(settings.splitMethod || 'equal')
           setRoundingMethod(settings.roundingMethod || 'yen1')
           setPeople(settings.people || initialPeople)
         }
@@ -55,7 +54,6 @@ export default function Home() {
           totalAmount,
           serviceChargeType,
           serviceChargeValue,
-          splitMethod,
           roundingMethod,
           people
         }
@@ -64,7 +62,7 @@ export default function Home() {
         console.warn('Failed to save settings to localStorage:', error)
       }
     }
-  }, [isLoaded, totalAmount, serviceChargeType, serviceChargeValue, splitMethod, roundingMethod, people])
+  }, [isLoaded, totalAmount, serviceChargeType, serviceChargeValue, roundingMethod, people])
 
   const handleCalculate = () => {
     if (totalAmount <= 0 || people.length === 0) {
