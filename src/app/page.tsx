@@ -80,6 +80,14 @@ export default function Home() {
       }
     }
 
+    if (splitMethod === 'manual') {
+      const assignedAmounts = people.slice(0, -1).reduce((sum, person) => sum + (person.amount || 0), 0)
+      if (assignedAmounts > totalAmount) {
+        alert('指定した金額の合計が、合計金額を超えています。')
+        return
+      }
+    }
+
     const input: CalculationInput = {
       totalAmount,
       people,
