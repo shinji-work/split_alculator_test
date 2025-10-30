@@ -1,4 +1,6 @@
 export const registerServiceWorker = async () => {
+  if (process.env.NODE_ENV !== 'production') return
+
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js')
@@ -21,6 +23,18 @@ export const registerServiceWorker = async () => {
     } catch (error) {
       console.error('Service Worker registration failed:', error)
     }
+  }
+}
+
+export const unregisterServiceWorkers = async () => {
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(registrations.map((registration) => registration.unregister()))
+  }
+
+  if (typeof caches !== 'undefined') {
+    const cacheNames = await caches.keys()
+    await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)))
   }
 }
 
