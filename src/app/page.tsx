@@ -26,6 +26,7 @@ export default function Home() {
   const [serviceChargeValue, setServiceChargeValue] = useState<number>(10)
   const [splitMethod, setSplitMethod] = useState<SplitMethod>('equal')
   const [roundingMethod, setRoundingMethod] = useState<RoundingMethod>('yen1')
+  const [paidBy, setPaidBy] = useState<string>('')
   const [result, setResult] = useState<CalculationResult | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [breakdownDetails, setBreakdownDetails] = useState<{ baseAmount: number; serviceCharge: number } | null>(null)
@@ -85,6 +86,12 @@ export default function Home() {
     }
   }, [isLoaded, totalAmount, serviceChargeType, serviceChargeValue, roundingMethod, people])
 
+  useEffect(() => {
+    if (people.length > 0 && !people.find(p => p.id === paidBy)) {
+      setPaidBy(people[0].id)
+    }
+  }, [people, paidBy])
+
   const handleCalculate = () => {
     if (totalAmount <= 0 || people.length === 0) {
       alert('合計金額と参加者を入力してください')
@@ -115,11 +122,16 @@ export default function Home() {
         value: serviceChargeValue
       },
       splitMethod,
-      roundingMethod
+      roundingMethod,
+      paidBy
     }
 
     const calculationResult = calculateSplit(input)
     setResult(calculationResult)
+  }
+
+  const getPersonName = (id: string) => {
+    return people.find(p => p.id === id)?.name || ''
   }
 
   const addPerson = () => {
@@ -279,6 +291,25 @@ export default function Home() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="paid-by">支払った人</Label>
+              <p className="text-sm text-muted-foreground">
+                ここで選択した人が、合計金額を全額支払ったものとして清算計算が行われます。
+              </p>
+              <Select
+                value={paidBy}
+                onValueChange={(value) => setPaidBy(value)}
+              >
+                <SelectTrigger id="paid-by">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {people.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
@@ -418,7 +449,25 @@ export default function Home() {
             </CardContent>
           </Card>
         )}
+
+        {result && result.settlements.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>清算結果</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {result.settlements.map((settlement, index) => (
+                  <div key={index} className="flex items-center justify-between py-2">
+                    <span className="font-medium">{getPersonName(settlement.from)} → {getPersonName(settlement.to)}</span>
+                    <div className="text-lg font-bold">¥{settlement.amount.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
-} 
+}
