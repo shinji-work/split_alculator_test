@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Select, SelectItem } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { calculateSplit } from '@/lib/calculator'
 import { resultToCsv } from '@/lib/csv'
@@ -237,10 +237,14 @@ export default function Home() {
                 <Select
                   value={serviceChargeType}
                   onValueChange={(value) => setServiceChargeType(value as 'percentage' | 'fixed')}
-                  className="sm:w-40"
                 >
-                  <SelectItem value="percentage">パーセント</SelectItem>
-                  <SelectItem value="fixed">固定額</SelectItem>
+                  <SelectTrigger className="sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">パーセント</SelectItem>
+                    <SelectItem value="fixed">固定額</SelectItem>
+                  </SelectContent>
                 </Select>
                 <div className="flex items-center gap-2">
                   <Input
@@ -261,14 +265,18 @@ export default function Home() {
             <div className="space-y-2">
               <Label htmlFor="rounding-method">端数処理</Label>
               <Select
-                id="rounding-method"
                 value={roundingMethod}
                 onValueChange={(value) => setRoundingMethod(value as RoundingMethod)}
               >
-                <SelectItem value="yen1">1円単位</SelectItem>
-                <SelectItem value="yen10">10円単位</SelectItem>
-                <SelectItem value="yen100">100円単位</SelectItem>
-                <SelectItem value="none">端数処理なし</SelectItem>
+                <SelectTrigger id="rounding-method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yen1">1円単位</SelectItem>
+                  <SelectItem value="yen10">10円単位</SelectItem>
+                  <SelectItem value="yen100">100円単位</SelectItem>
+                  <SelectItem value="none">端数処理なし</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </CardContent>
@@ -286,13 +294,17 @@ export default function Home() {
             <div className="space-y-2">
               <Label htmlFor="split-method">分割方法</Label>
               <Select
-                id="split-method"
                 value={splitMethod}
                 onValueChange={(value) => setSplitMethod(value as SplitMethod)}
               >
-                <SelectItem value="equal">均等割り</SelectItem>
-                <SelectItem value="ratio">比率割り</SelectItem>
-                <SelectItem value="manual">金額指定</SelectItem>
+                <SelectTrigger id="split-method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equal">均等割り</SelectItem>
+                  <SelectItem value="ratio">比率割り</SelectItem>
+                  <SelectItem value="manual">金額指定</SelectItem>
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-3">
