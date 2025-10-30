@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Calculator, Users, Settings, Share2, Download, X } from 'lucide-react'
+import { Calculator, Users, Settings, Share2, Download, X, CreditCard, User, FileText, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +30,7 @@ export default function Home() {
   const [result, setResult] = useState<CalculationResult | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [breakdownDetails, setBreakdownDetails] = useState<{ baseAmount: number; serviceCharge: number } | null>(null)
+  const [amountPerPerson, setAmountPerPerson] = useState<number>(0)
 
   useEffect(() => {
     if (totalAmount > 0) {
@@ -128,6 +129,10 @@ export default function Home() {
 
     const calculationResult = calculateSplit(input)
     setResult(calculationResult)
+    if (calculationResult.perPersonAmounts.length > 0) {
+      const total = calculationResult.perPersonAmounts.reduce((sum, p) => sum + p.roundedAmount, 0);
+      setAmountPerPerson(total / calculationResult.perPersonAmounts.length);
+    }
   }
 
   const getPersonName = (id: string) => {
@@ -206,273 +211,299 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
-      <div className="mb-4 flex justify-end">
-        <Button asChild variant="link" className="px-0">
-          <Link href="/docs">使い方ドキュメント</Link>
-        </Button>
-      </div>
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold flex items-center justify-center gap-2 mb-2">
-          <Calculator className="h-8 w-8" />
-          割り勘計算機
-        </h1>
-        <p className="text-muted-foreground">簡単・正確・共有可能</p>
-      </div>
-
-      <div className="space-y-6">
-        {/* 基本入力 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              基本設定
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="total-amount">合計金額（円）</Label>
-              <Input
-                id="total-amount"
-                type="number"
-                inputMode="numeric"
-                value={totalAmount || ''}
-                onChange={(e) => setTotalAmount(Number(e.target.value))}
-                placeholder="例: 10000"
-                className="text-lg"
-              />
-              {breakdownDetails && (
-                <p className="text-sm text-muted-foreground">
-                  （基本料金: ¥{breakdownDetails.baseAmount.toLocaleString()} + サービス料: ¥{breakdownDetails.serviceCharge.toLocaleString()}）
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>サービス料・税</Label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Select
-                  value={serviceChargeType}
-                  onValueChange={(value) => setServiceChargeType(value as 'percentage' | 'fixed')}
-                >
-                  <SelectTrigger className="sm:w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">パーセント</SelectItem>
-                    <SelectItem value="fixed">固定額</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800">割り勘計算機</h1>
+          <Button asChild variant="link" className="px-0">
+            <Link href="/docs">使い方ドキュメント</Link>
+          </Button>
+        </div>
+      </header>
+      <main className="container mx-auto p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">合計金額</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">¥{totalAmount.toLocaleString()}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">参加者数</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{people.length}人</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">1人あたりの金額</CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">¥{Math.round(amountPerPerson).toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">（平均）</p>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  基本設定
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="total-amount">合計金額（円）</Label>
                   <Input
+                    id="total-amount"
                     type="number"
                     inputMode="numeric"
-                    value={serviceChargeValue || ''}
-                    onChange={(e) => setServiceChargeValue(Number(e.target.value))}
-                    placeholder={serviceChargeType === 'percentage' ? '10' : '500'}
-                    className="flex-1"
+                    value={totalAmount || ''}
+                    onChange={(e) => setTotalAmount(Number(e.target.value))}
+                    placeholder="例: 10000"
+                    className="text-lg"
                   />
-                  <span className="text-sm text-muted-foreground">
-                    {serviceChargeType === 'percentage' ? '%' : '円'}
-                  </span>
+                  {breakdownDetails && (
+                    <p className="text-sm text-muted-foreground">
+                      （基本料金: ¥{breakdownDetails.baseAmount.toLocaleString()} + サービス料: ¥{breakdownDetails.serviceCharge.toLocaleString()}）
+                    </p>
+                  )}
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="rounding-method">端数処理</Label>
-              <Select
-                value={roundingMethod}
-                onValueChange={(value) => setRoundingMethod(value as RoundingMethod)}
-              >
-                <SelectTrigger id="rounding-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yen1">1円単位</SelectItem>
-                  <SelectItem value="yen10">10円単位</SelectItem>
-                  <SelectItem value="yen100">100円単位</SelectItem>
-                  <SelectItem value="none">端数処理なし</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="paid-by">支払った人</Label>
-              <p className="text-sm text-muted-foreground">
-                ここで選択した人が、合計金額を全額支払ったものとして清算計算が行われます。
-              </p>
-              <Select
-                value={paidBy}
-                onValueChange={(value) => setPaidBy(value)}
-              >
-                <SelectTrigger id="paid-by">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {people.map((person) => (
-                    <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 参加者管理 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              参加者（{people.length}名）
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="split-method">分割方法</Label>
-              <Select
-                value={splitMethod}
-                onValueChange={(value) => setSplitMethod(value as SplitMethod)}
-              >
-                <SelectTrigger id="split-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="equal">均等割り</SelectItem>
-                  <SelectItem value="ratio">比率割り</SelectItem>
-                  <SelectItem value="manual">金額指定</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-3">
-              {people.map((person, index) => (
-                <div key={person.id} className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-3">
-                  <div className="flex w-full flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="space-y-2">
+                  <Label>サービス料・税</Label>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={serviceChargeType}
+                      onValueChange={(value) => setServiceChargeType(value as 'percentage' | 'fixed')}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">パーセント</SelectItem>
+                        <SelectItem value="fixed">固定額</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Input
-                      value={person.name}
-                      onChange={(e) => updatePersonName(person.id, e.target.value)}
-                      placeholder={`参加者${index + 1}`}
-                      className="flex-1"
+                      type="number"
+                      inputMode="numeric"
+                      value={serviceChargeValue || ''}
+                      onChange={(e) => setServiceChargeValue(Number(e.target.value))}
+                      placeholder="10"
+                      className="w-24"
                     />
-                    {splitMethod === 'ratio' && (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          value={person.ratio || ''}
-                          onChange={(e) => updatePersonRatio(person.id, Number(e.target.value))}
-                          placeholder="比率"
-                          className="w-24 text-right"
-                        />
-                        <span className="text-sm text-muted-foreground">%</span>
-                      </div>
-                    )}
-                    {splitMethod === 'manual' && (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          value={person.amount || ''}
-                          onChange={(e) => updatePersonAmount(person.id, Number(e.target.value))}
-                          placeholder="金額"
-                          className="w-32 text-right"
-                        />
-                        <span className="text-sm text-muted-foreground">円</span>
-                      </div>
-                    )}
+                    <span className="text-sm text-muted-foreground">
+                      {serviceChargeType === 'percentage' ? '%' : '円'}
+                    </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removePerson(person.id)}
-                    disabled={people.length <= 1}
-                    aria-label="参加者を削除"
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rounding-method">端数処理</Label>
+                  <Select
+                    value={roundingMethod}
+                    onValueChange={(value) => setRoundingMethod(value as RoundingMethod)}
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    <SelectTrigger id="rounding-method">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yen1">1円単位</SelectItem>
+                      <SelectItem value="yen10">10円単位</SelectItem>
+                      <SelectItem value="yen100">100円単位</SelectItem>
+                      <SelectItem value="none">端数処理なし</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              ))}
-            </div>
-            <Button variant="outline" onClick={addPerson} className="w-full">
-              + 参加者を追加
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* 入力内容確認ボタン */}
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/confirm">入力内容確認</Link>
-        </Button>
-
-        {/* 計算ボタン */}
-        <Button onClick={handleCalculate} size="lg" className="w-full">
-          <Calculator className="h-5 w-5 mr-2" />
-          計算する
-        </Button>
-
-        {/* 結果表示 */}
-        {result && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                計算結果
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleShare}>
-                    <Share2 className="h-4 w-4 mr-2" />
-                    共有
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleExportCSV}>
-                    <Download className="h-4 w-4 mr-2" />
-                    CSV
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="paid-by">支払った人</Label>
+                  <Select
+                    value={paidBy}
+                    onValueChange={(value) => setPaidBy(value)}
+                  >
+                    <SelectTrigger id="paid-by">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {people.map((person) => (
+                        <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardTitle>
-              <CardDescription>
-                合計: ¥{result.totalWithCharge.toLocaleString()}
-                （基本料金: ¥{result.breakdown.baseAmount.toLocaleString()} +
-                サービス料: ¥{result.breakdown.serviceCharge.toLocaleString()}）
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {result.perPersonAmounts.map((person, index) => (
-                  <Fragment key={person.personId}>
-                    <div className="flex items-center justify-between py-2">
-                      <span className="font-medium">{person.name}</span>
-                      <div className="text-right">
-                        <div className="text-lg font-bold">¥{person.roundedAmount.toLocaleString()}</div>
-                        {person.amount !== person.roundedAmount && (
-                          <div className="text-sm text-muted-foreground">
-                            (¥{person.amount.toLocaleString()})
-                          </div>
-                        )}
-                      </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  参加者（{people.length}名）
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="split-method">分割方法</Label>
+                  <Select
+                    value={splitMethod}
+                    onValueChange={(value) => setSplitMethod(value as SplitMethod)}
+                  >
+                    <SelectTrigger id="split-method">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="equal">均等割り</SelectItem>
+                      <SelectItem value="ratio">比率割り</SelectItem>
+                      <SelectItem value="manual">金額指定</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-3">
+                  {people.map((person, index) => (
+                    <div key={person.id} className="flex items-center gap-3">
+                      <Input
+                        value={person.name}
+                        onChange={(e) => updatePersonName(person.id, e.target.value)}
+                        placeholder={`参加者${index + 1}`}
+                        className="flex-1"
+                      />
+                      {splitMethod === 'ratio' && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            value={person.ratio || ''}
+                            onChange={(e) => updatePersonRatio(person.id, Number(e.target.value))}
+                            placeholder="比率"
+                            className="w-24 text-right"
+                          />
+                          <span className="text-sm text-muted-foreground">%</span>
+                        </div>
+                      )}
+                      {splitMethod === 'manual' && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            value={person.amount || ''}
+                            onChange={(e) => updatePersonAmount(person.id, Number(e.target.value))}
+                            placeholder="金額"
+                            className="w-32 text-right"
+                          />
+                          <span className="text-sm text-muted-foreground">円</span>
+                        </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removePerson(person.id)}
+                        disabled={people.length <= 1}
+                        aria-label="参加者を削除"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                    {index < result.perPersonAmounts.length - 1 && <Separator />}
-                  </Fragment>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {result && result.settlements.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>清算結果</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {result.settlements.map((settlement, index) => (
-                  <div key={index} className="flex items-center justify-between py-2">
-                    <span className="font-medium">{getPersonName(settlement.from)} → {getPersonName(settlement.to)}</span>
-                    <div className="text-lg font-bold">¥{settlement.amount.toLocaleString()}</div>
+                  ))}
+                </div>
+                <Button variant="outline" onClick={addPerson} className="w-full">
+                  + 参加者を追加
+                </Button>
+              </CardContent>
+            </Card>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/confirm">入力内容確認</Link>
+            </Button>
+            <Button onClick={handleCalculate} size="lg" className="w-full btn-primary-green">
+              <Calculator className="h-5 w-5 mr-2" />
+              計算する
+            </Button>
+          </div>
+          <div className="space-y-6">
+            {!result && (
+              <Card className="h-full flex flex-col items-center justify-center text-center p-8">
+                <CardHeader>
+                  <CardTitle>結果はここに表示されます</CardTitle>
+                  <CardDescription>
+                    左側のフォームに入力して、「計算する」ボタンを押してください。
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Calculator className="h-16 w-16 text-muted-foreground" />
+                </CardContent>
+              </Card>
+            )}
+            {result && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      計算結果
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handleShare}>
+                        <Share2 className="h-4 w-4 mr-2" />
+                        共有
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                        <Download className="h-4 w-4 mr-2" />
+                        CSV
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {result.perPersonAmounts.map((person, index) => (
+                      <Fragment key={person.personId}>
+                        <div className="flex items-center justify-between py-2">
+                          <span className="font-medium">{person.name}</span>
+                          <div className="text-right">
+                            <div className="text-lg font-bold">¥{person.roundedAmount.toLocaleString()}</div>
+                            {person.amount !== person.roundedAmount && (
+                              <div className="text-sm text-muted-foreground">
+                                (¥{person.amount.toLocaleString()})
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {index < result.perPersonAmounts.length - 1 && <Separator />}
+                      </Fragment>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                </CardContent>
+              </Card>
+            )}
+            {result && result.settlements.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardCheck className="h-5 w-5" />
+                    清算結果
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {result.settlements.map((settlement, index) => (
+                      <div key={index} className="flex items-center justify-between py-2">
+                        <span className="font-medium">{getPersonName(settlement.from)} → {getPersonName(settlement.to)}</span>
+                        <div className="text-lg font-bold">¥{settlement.amount.toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

@@ -78,6 +78,7 @@
 
   input[type="number"] {
     -moz-appearance: textfield;
+    appearance: textfield;
   }
 
   /* モバイル最適化 */
@@ -86,4 +87,8 @@
       @apply px-4;
     }
   }
-} 
+
+  .btn-primary-green {
+    @apply bg-green-500 text-white transition duration-200 hover:brightness-90;
+  }
+}
