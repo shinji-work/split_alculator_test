@@ -293,6 +293,9 @@ export default function Home() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="paid-by">支払った人</Label>
+              <p className="text-sm text-muted-foreground">
+                ここで選択した人が、合計金額を全額支払ったものとして清算計算が行われます。
+              </p>
               <Select
                 value={paidBy}
                 onValueChange={(value) => setPaidBy(value)}
