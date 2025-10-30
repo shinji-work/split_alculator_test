@@ -2,25 +2,29 @@ import { CalculationInput, CalculationResult, RoundingMethod } from './types'
 
 export function calculateSplit(input: CalculationInput): CalculationResult {
   const { totalAmount, people, serviceCharge, splitMethod, roundingMethod, items } = input
-  
-  // サービス料を計算
-  const serviceChargeAmount = serviceCharge.type === 'percentage' 
-    ? totalAmount * (serviceCharge.value / 100)
-    : serviceCharge.value
-  
-  const totalWithCharge = totalAmount + serviceChargeAmount
-  
+
+  let baseAmount = 0
+  let serviceChargeAmount = 0
+
+  if (serviceCharge.type === 'percentage') {
+    baseAmount = totalAmount / (1 + (serviceCharge.value || 0) / 100)
+    serviceChargeAmount = totalAmount - baseAmount
+  } else { // fixed
+    baseAmount = totalAmount - (serviceCharge.value || 0)
+    serviceChargeAmount = serviceCharge.value || 0
+  }
+
   let perPersonAmounts: Array<{ personId: string; name: string; amount: number; roundedAmount: number }> = []
   
   switch (splitMethod) {
     case 'equal':
-      perPersonAmounts = calculateEqualSplit(people, totalWithCharge)
+      perPersonAmounts = calculateEqualSplit(people, totalAmount)
       break
     case 'ratio':
-      perPersonAmounts = calculateRatioSplit(people, totalWithCharge)
+      perPersonAmounts = calculateRatioSplit(people, totalAmount)
       break
     case 'manual':
-      perPersonAmounts = calculateManualSplit(people, totalWithCharge)
+      perPersonAmounts = calculateManualSplit(people, totalAmount)
       break
     case 'item':
       perPersonAmounts = calculateItemSplit(people, items || [], serviceChargeAmount)
@@ -28,11 +32,11 @@ export function calculateSplit(input: CalculationInput): CalculationResult {
   }
   
   // 端数処理を適用
-  const roundedAmounts = applyRounding(perPersonAmounts, roundingMethod, totalWithCharge)
+  const roundedAmounts = applyRounding(perPersonAmounts, roundingMethod, totalAmount)
   
   // 残差を計算
   const totalRounded = roundedAmounts.reduce((sum, person) => sum + person.roundedAmount, 0)
-  const remainingAmount = totalWithCharge - totalRounded
+  const remainingAmount = totalAmount - totalRounded
   
   // 残差を上位N名に配分
   if (remainingAmount !== 0) {
@@ -40,13 +44,13 @@ export function calculateSplit(input: CalculationInput): CalculationResult {
   }
   
   return {
-    totalWithCharge,
+    totalWithCharge: totalAmount,
     perPersonAmounts: roundedAmounts,
     remainingAmount: 0, // 残差配分後は0
     breakdown: {
-      baseAmount: totalAmount,
+      baseAmount: baseAmount,
       serviceCharge: serviceChargeAmount,
-      totalBeforeRounding: totalWithCharge,
+      totalBeforeRounding: totalAmount,
       roundingAdjustment: remainingAmount
     }
   }

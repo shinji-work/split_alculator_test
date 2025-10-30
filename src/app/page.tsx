@@ -25,6 +25,24 @@ export default function Home() {
   const [roundingMethod, setRoundingMethod] = useState<RoundingMethod>('yen1')
   const [result, setResult] = useState<CalculationResult | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [breakdownDetails, setBreakdownDetails] = useState<{ baseAmount: number; serviceCharge: number } | null>(null)
+
+  useEffect(() => {
+    if (totalAmount > 0) {
+      let base = 0
+      let charge = 0
+      if (serviceChargeType === 'percentage') {
+        base = totalAmount / (1 + (serviceChargeValue || 0) / 100)
+        charge = totalAmount - base
+      } else { // fixed
+        base = totalAmount - (serviceChargeValue || 0)
+        charge = serviceChargeValue || 0
+      }
+      setBreakdownDetails({ baseAmount: Math.round(base), serviceCharge: Math.round(charge) })
+    } else {
+      setBreakdownDetails(null)
+    }
+  }, [totalAmount, serviceChargeType, serviceChargeValue])
 
   // 初回ロード時にlocalStorageから設定を復元
   useEffect(() => {
@@ -202,6 +220,11 @@ export default function Home() {
                 placeholder="例: 10000"
                 className="text-lg"
               />
+              {breakdownDetails && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  （基本料金: ¥{breakdownDetails.baseAmount.toLocaleString()} + サービス料: ¥{breakdownDetails.serviceCharge.toLocaleString()}）
+                </p>
+              )}
             </div>
 
             <div>
