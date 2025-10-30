@@ -86,4 +86,8 @@
       @apply px-4;
     }
   }
-} 
+
+  .btn-primary-green {
+    @apply bg-green-500 text-white hover:bg-green-600;
+  }
+}

@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Calculator, Users, Settings, Share2, Download, X, CreditCard, User } from 'lucide-react'
+import { Calculator, Users, Settings, Share2, Download, X, CreditCard, User, FileText, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -420,7 +420,7 @@ export default function Home() {
             <Button asChild variant="outline" className="w-full">
               <Link href="/confirm">入力内容確認</Link>
             </Button>
-            <Button onClick={handleCalculate} size="lg" className="w-full bg-green-500 hover:bg-green-600 text-white">
+            <Button onClick={handleCalculate} size="lg" className="w-full btn-primary-green">
               <Calculator className="h-5 w-5 mr-2" />
               計算する
             </Button>
@@ -430,7 +430,10 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    計算結果
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      計算結果
+                    </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={handleShare}>
                         <Share2 className="h-4 w-4 mr-2" />
@@ -468,7 +471,10 @@ export default function Home() {
             {result && result.settlements.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>清算結果</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardCheck className="h-5 w-5" />
+                    清算結果
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
