@@ -207,6 +207,11 @@ export default function Home() {
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
+      <div className="mb-4 flex justify-end">
+        <Button asChild variant="link" className="px-0">
+          <Link href="/docs">使い方ドキュメント</Link>
+        </Button>
+      </div>
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold flex items-center justify-center gap-2 mb-2">
           <Calculator className="h-8 w-8" />
