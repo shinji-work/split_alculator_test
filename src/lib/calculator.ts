@@ -1,7 +1,7 @@
-import { CalculationInput, CalculationResult, RoundingMethod } from './types'
+import { CalculationInput, CalculationResult, RoundingMethod, Person, Settlement } from './types'
 
 export function calculateSplit(input: CalculationInput): CalculationResult {
-  const { totalAmount, people, serviceCharge, splitMethod, roundingMethod, items } = input
+  const { totalAmount, people, serviceCharge, splitMethod, roundingMethod, items, paidBy } = input
 
   let baseAmount = 0
   let serviceChargeAmount = 0
@@ -43,9 +43,12 @@ export function calculateSplit(input: CalculationInput): CalculationResult {
     distributeRemainder(roundedAmounts, remainingAmount)
   }
   
+  const settlements = calculateSettlement(roundedAmounts, people, paidBy, totalAmount)
+
   return {
     totalWithCharge: totalAmount,
     perPersonAmounts: roundedAmounts,
+    settlements,
     remainingAmount: 0, // 残差配分後は0
     breakdown: {
       baseAmount: baseAmount,
@@ -54,6 +57,53 @@ export function calculateSplit(input: CalculationInput): CalculationResult {
       roundingAdjustment: remainingAmount
     }
   }
+}
+
+function calculateSettlement(
+  perPersonAmounts: Array<{ personId: string; name: string; roundedAmount: number }>,
+  people: Person[],
+  paidBy: string | undefined,
+  totalAmount: number
+): Settlement[] {
+  if (!paidBy) {
+    return []
+  }
+
+  const balances: { [personId: string]: number } = {}
+
+  // Initialize balances
+  people.forEach(person => {
+    const amountOwed = perPersonAmounts.find(p => p.personId === person.id)?.roundedAmount || 0
+    const amountPaid = person.id === paidBy ? totalAmount : 0
+    balances[person.id] = amountPaid - amountOwed
+  })
+
+  const debtors = Object.keys(balances).filter(id => balances[id] < 0).map(id => ({ id, amount: balances[id] }))
+  const creditors = Object.keys(balances).filter(id => balances[id] > 0).map(id => ({ id, amount: balances[id] }))
+
+  const settlements: Settlement[] = []
+
+  debtors.forEach(debtor => {
+    let amountToSettle = -debtor.amount
+    creditors.forEach(creditor => {
+      if (amountToSettle <= 0) return
+
+      const amountAvailable = creditor.amount
+      const transferAmount = Math.min(amountToSettle, amountAvailable)
+
+      if (transferAmount > 0) {
+        settlements.push({
+          from: debtor.id,
+          to: creditor.id,
+          amount: transferAmount
+        })
+        amountToSettle -= transferAmount
+        creditor.amount -= transferAmount
+      }
+    })
+  })
+
+  return settlements
 }
 
 function calculateEqualSplit(

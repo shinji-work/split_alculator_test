@@ -7,6 +7,7 @@ export interface Person {
   name: string
   ratio?: number
   amount?: number
+  paidAmount?: number
 }
 
 export interface Item {
@@ -26,6 +27,13 @@ export interface CalculationInput {
   splitMethod: SplitMethod
   roundingMethod: RoundingMethod
   items?: Item[]
+  paidBy?: string
+}
+
+export interface Settlement {
+  from: string
+  to: string
+  amount: number
 }
 
 export interface CalculationResult {
@@ -36,6 +44,7 @@ export interface CalculationResult {
     amount: number
     roundedAmount: number
   }>
+  settlements: Settlement[]
   remainingAmount: number
   breakdown: {
     baseAmount: number
