@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Calculator, Users, Settings, Share2, QrCode, Download } from 'lucide-react'
+import { Calculator, Users, Settings, Share2, Download, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import { calculateSplit } from '@/lib/calculator'
 import { resultToCsv } from '@/lib/csv'
 import { CalculationInput, CalculationResult, Person, SplitMethod, RoundingMethod } from '@/lib/types'
@@ -209,10 +212,11 @@ export default function Home() {
               基本設定
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">合計金額（円）</label>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="total-amount">合計金額（円）</Label>
               <Input
+                id="total-amount"
                 type="number"
                 inputMode="numeric"
                 value={totalAmount || ''}
@@ -221,49 +225,59 @@ export default function Home() {
                 className="text-lg"
               />
               {breakdownDetails && (
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-sm text-muted-foreground">
                   （基本料金: ¥{breakdownDetails.baseAmount.toLocaleString()} + サービス料: ¥{breakdownDetails.serviceCharge.toLocaleString()}）
                 </p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">サービス料・税</label>
-              <div className="flex gap-2">
-                <select
+            <div className="space-y-2">
+              <Label>サービス料・税</Label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Select
                   value={serviceChargeType}
-                  onChange={(e) => setServiceChargeType(e.target.value as 'percentage' | 'fixed')}
-                  className="px-3 py-2 border border-input rounded-md bg-background"
+                  onValueChange={(value) => setServiceChargeType(value as 'percentage' | 'fixed')}
                 >
-                  <option value="percentage">パーセント</option>
-                  <option value="fixed">固定額</option>
-                </select>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={serviceChargeValue || ''}
-                  onChange={(e) => setServiceChargeValue(Number(e.target.value))}
-                  placeholder={serviceChargeType === 'percentage' ? '10' : '500'}
-                  className="flex-1"
-                />
-                <span className="px-3 py-2 text-sm text-muted-foreground">
-                  {serviceChargeType === 'percentage' ? '%' : '円'}
-                </span>
+                  <SelectTrigger className="sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">パーセント</SelectItem>
+                    <SelectItem value="fixed">固定額</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={serviceChargeValue || ''}
+                    onChange={(e) => setServiceChargeValue(Number(e.target.value))}
+                    placeholder={serviceChargeType === 'percentage' ? '10' : '500'}
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {serviceChargeType === 'percentage' ? '%' : '円'}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">端数処理</label>
-              <select
+            <div className="space-y-2">
+              <Label htmlFor="rounding-method">端数処理</Label>
+              <Select
                 value={roundingMethod}
-                onChange={(e) => setRoundingMethod(e.target.value as RoundingMethod)}
-                className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                onValueChange={(value) => setRoundingMethod(value as RoundingMethod)}
               >
-                <option value="yen1">1円単位</option>
-                <option value="yen10">10円単位</option>
-                <option value="yen100">100円単位</option>
-                <option value="none">端数処理なし</option>
-              </select>
+                <SelectTrigger id="rounding-method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yen1">1円単位</SelectItem>
+                  <SelectItem value="yen10">10円単位</SelectItem>
+                  <SelectItem value="yen100">100円単位</SelectItem>
+                  <SelectItem value="none">端数処理なし</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -276,63 +290,72 @@ export default function Home() {
               参加者（{people.length}名）
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-2">分割方法</label>
-              <select
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="split-method">分割方法</Label>
+              <Select
                 value={splitMethod}
-                onChange={(e) => setSplitMethod(e.target.value as SplitMethod)}
-                className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                onValueChange={(value) => setSplitMethod(value as SplitMethod)}
               >
-                <option value="equal">均等割り</option>
-                <option value="ratio">比率割り</option>
-                <option value="manual">金額指定</option>
-              </select>
+                <SelectTrigger id="split-method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equal">均等割り</SelectItem>
+                  <SelectItem value="ratio">比率割り</SelectItem>
+                  <SelectItem value="manual">金額指定</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            {people.map((person, index) => (
-              <div key={person.id} className="flex gap-2 items-center">
-                <Input
-                  value={person.name}
-                  onChange={(e) => updatePersonName(person.id, e.target.value)}
-                  placeholder={`参加者${index + 1}`}
-                  className="flex-1"
-                />
-                {splitMethod === 'ratio' && (
-                  <div className="flex items-center">
+            <div className="space-y-3">
+              {people.map((person, index) => (
+                <div key={person.id} className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:gap-3">
+                  <div className="flex w-full flex-1 flex-col gap-2 sm:flex-row sm:items-center">
                     <Input
-                      type="number"
-                      inputMode="numeric"
-                      value={person.ratio || ''}
-                      onChange={(e) => updatePersonRatio(person.id, Number(e.target.value))}
-                      placeholder="比率"
-                      className="w-20 text-right"
+                      value={person.name}
+                      onChange={(e) => updatePersonName(person.id, e.target.value)}
+                      placeholder={`参加者${index + 1}`}
+                      className="flex-1"
                     />
-                    <span className="ml-1">%</span>
+                    {splitMethod === 'ratio' && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          value={person.ratio || ''}
+                          onChange={(e) => updatePersonRatio(person.id, Number(e.target.value))}
+                          placeholder="比率"
+                          className="w-24 text-right"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                    )}
+                    {splitMethod === 'manual' && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          value={person.amount || ''}
+                          onChange={(e) => updatePersonAmount(person.id, Number(e.target.value))}
+                          placeholder="金額"
+                          className="w-32 text-right"
+                        />
+                        <span className="text-sm text-muted-foreground">円</span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {splitMethod === 'manual' && (
-                  <div className="flex items-center">
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      value={person.amount || ''}
-                      onChange={(e) => updatePersonAmount(person.id, Number(e.target.value))}
-                      placeholder="金額"
-                      className="w-28 text-right"
-                    />
-                    <span className="ml-1">円</span>
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => removePerson(person.id)}
-                  disabled={people.length <= 1}
-                >
-                  ×
-                </Button>
-              </div>
-            ))}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removePerson(person.id)}
+                    disabled={people.length <= 1}
+                    aria-label="参加者を削除"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
             <Button variant="outline" onClick={addPerson} className="w-full">
               + 参加者を追加
             </Button>
@@ -375,18 +398,21 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {result.perPersonAmounts.map(person => (
-                  <div key={person.personId} className="flex justify-between items-center py-2 border-b">
-                    <span className="font-medium">{person.name}</span>
-                    <div className="text-right">
-                      <div className="text-lg font-bold">¥{person.roundedAmount.toLocaleString()}</div>
-                      {person.amount !== person.roundedAmount && (
-                        <div className="text-sm text-muted-foreground">
-                          (¥{person.amount.toLocaleString()})
-                        </div>
-                      )}
+                {result.perPersonAmounts.map((person, index) => (
+                  <Fragment key={person.personId}>
+                    <div className="flex items-center justify-between py-2">
+                      <span className="font-medium">{person.name}</span>
+                      <div className="text-right">
+                        <div className="text-lg font-bold">¥{person.roundedAmount.toLocaleString()}</div>
+                        {person.amount !== person.roundedAmount && (
+                          <div className="text-sm text-muted-foreground">
+                            (¥{person.amount.toLocaleString()})
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                    {index < result.perPersonAmounts.length - 1 && <Separator />}
+                  </Fragment>
                 ))}
               </div>
             </CardContent>
