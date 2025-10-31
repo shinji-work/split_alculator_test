@@ -1,13 +1,17 @@
 'use client'
 
 import { useState, useEffect, RefObject } from 'react'
+import dynamic from 'next/dynamic'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { CalculationResult } from '@/lib/types'
 import { Copy, QrCode, Download, MessageSquare, ExternalLink } from 'lucide-react'
-import { QRCodeSVG } from 'qrcode.react'
 import { LineShareButton, LineIcon } from 'react-share'
 import html2canvas from 'html2canvas'
+
+const QRCodeSVG = dynamic(() => import('qrcode.react').then(mod => mod.QRCodeSVG), {
+  ssr: false
+})
 
 
 interface ShareModalProps {
