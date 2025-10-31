@@ -4,9 +4,9 @@ import { useState, useEffect, RefObject } from 'react'
 import dynamic from 'next/dynamic'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CalculationResult } from '@/lib/types'
+import { CalculationResult, CalculationInput } from '@/lib/types'
 import { Copy, QrCode, Download, MessageSquare, ExternalLink } from 'lucide-react'
-import { LineShareButton, LineIcon } from 'react-share'
+import { LineIcon } from 'react-share'
 import html2canvas from 'html2canvas'
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then(mod => mod.QRCodeSVG), {
@@ -19,18 +19,28 @@ interface ShareModalProps {
   onClose: () => void
   result: CalculationResult | null
   resultRef: RefObject<HTMLDivElement>
+  downloadRef?: RefObject<HTMLDivElement>
+  input?: CalculationInput
 }
 
-export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, result, resultRef }) => {
+export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, result, resultRef, downloadRef, input }) => {
   const [shareUrl, setShareUrl] = useState('')
 
   const handleDownloadImage = () => {
-    if (resultRef.current) {
-      html2canvas(resultRef.current).then(canvas => {
-        const image = canvas.toDataURL('image/png')
+    const targetRef = downloadRef?.current || resultRef.current
+    if (targetRef) {
+      html2canvas(targetRef, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+        windowWidth: targetRef.scrollWidth,
+        windowHeight: targetRef.scrollHeight,
+      }).then(canvas => {
+        const image = canvas.toDataURL('image/png', 1.0)
         const link = document.createElement('a')
         link.href = image
-        link.download = 'split-result.png'
+        link.download = '割り勘計算明細書.png'
         link.click()
       })
     }
@@ -38,12 +48,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, result,
 
   useEffect(() => {
     if (result) {
-      const jsonString = JSON.stringify(result)
+      const shareData = {
+        result,
+        input: input || null
+      }
+      const jsonString = JSON.stringify(shareData)
       const encodedData = btoa(encodeURIComponent(jsonString))
       const url = `${window.location.origin}/result?data=${encodedData}`
       setShareUrl(url)
     }
-  }, [result])
+  }, [result, input])
 
   if (!result) return null
 
@@ -71,14 +85,19 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, result,
                 <Download className="mr-2 h-4 w-4" />
                 画像を保存
             </Button>
-            <LineShareButton url={shareUrl} className="w-full">
-              <Button variant="outline" className="w-full justify-start">
-                <LineIcon size={24} round className="mr-2" />
-                LINEで共有
-              </Button>
-            </LineShareButton>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start" 
+              onClick={() => {
+                const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`
+                window.open(lineUrl, '_blank', 'noopener,noreferrer')
+              }}
+            >
+              <LineIcon size={24} round className="mr-2" />
+              LINEで共有
+            </Button>
             <div className="text-center pt-4">
-              <QRCodeSVG value={shareUrl} size={128} />
+              <QRCodeSVG value={shareUrl} size={128} level="L" />
             </div>
         </div>
       </DialogContent>

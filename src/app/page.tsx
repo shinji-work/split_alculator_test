@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { Calculator, Users, Settings, Share2, Download, X, CreditCard, User, FileText, ClipboardCheck } from 'lucide-react'
 import { ShareModal } from '@/components/ShareModal'
+import { ReceiptView } from '@/components/ReceiptView'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,11 +30,13 @@ export default function Home() {
   const [roundingMethod, setRoundingMethod] = useState<RoundingMethod>('yen1')
   const [paidBy, setPaidBy] = useState<string>('')
   const [result, setResult] = useState<CalculationResult | null>(null)
+  const [calculationInput, setCalculationInput] = useState<CalculationInput | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [breakdownDetails, setBreakdownDetails] = useState<{ baseAmount: number; serviceCharge: number } | null>(null)
   const [amountPerPerson, setAmountPerPerson] = useState<number>(0)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const resultCardRef = useRef<HTMLDivElement>(null)
+  const downloadRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (totalAmount > 0) {
@@ -132,6 +135,7 @@ export default function Home() {
 
     const calculationResult = calculateSplit(input)
     setResult(calculationResult)
+    setCalculationInput(input)
     if (calculationResult.perPersonAmounts.length > 0) {
       const total = calculationResult.perPersonAmounts.reduce((sum, p) => sum + p.roundedAmount, 0);
       setAmountPerPerson(total / calculationResult.perPersonAmounts.length);
@@ -140,6 +144,20 @@ export default function Home() {
 
   const getPersonName = (id: string) => {
     return people.find(p => p.id === id)?.name || ''
+  }
+
+  const roundingLabels: Record<string, string> = {
+    yen1: '1円単位',
+    yen10: '10円単位',
+    yen100: '100円単位',
+    none: '端数処理なし'
+  }
+
+  const splitMethodLabels: Record<string, string> = {
+    equal: '均等割り',
+    ratio: '比率割り',
+    manual: '手動割り',
+    item: 'アイテム割り'
   }
 
   const addPerson = () => {
@@ -195,6 +213,8 @@ export default function Home() {
         onClose={() => setIsShareModalOpen(false)}
         result={result}
         resultRef={resultCardRef}
+        downloadRef={downloadRef}
+        input={calculationInput || undefined}
       />
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -409,7 +429,7 @@ export default function Home() {
               計算する
             </Button>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 relative">
             {!result && (
               <Card className="h-full flex flex-col items-center justify-center text-center p-8">
                 <CardHeader>
@@ -424,66 +444,77 @@ export default function Home() {
               </Card>
             )}
             {result && (
-              <Card ref={resultCardRef}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      計算結果
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setIsShareModalOpen(true)}>
-                        <Share2 className="h-4 w-4 mr-2" />
-                        共有
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={handleExportCSV}>
-                        <Download className="h-4 w-4 mr-2" />
-                        CSV
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {result.perPersonAmounts.map((person, index) => (
-                      <Fragment key={person.personId}>
-                        <div className="flex items-center justify-between py-2">
-                          <span className="font-medium">{person.name}</span>
-                          <div className="text-right">
-                            <div className="text-lg font-bold">¥{person.roundedAmount.toLocaleString()}</div>
-                            {person.amount !== person.roundedAmount && (
-                              <div className="text-sm text-muted-foreground">
-                                (¥{person.amount.toLocaleString()})
-                              </div>
-                            )}
-                          </div>
+              <>
+                {/* 画像ダウンロード用（非表示、明細書デザイン） */}
+                <div ref={downloadRef} className="absolute left-[-9999px]">
+                  {calculationInput && (
+                    <ReceiptView result={result} input={calculationInput} />
+                  )}
+                </div>
+                {/* 表示用（入力確認欄なし） */}
+                <div ref={resultCardRef} className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          計算結果
                         </div>
-                        {index < result.perPersonAmounts.length - 1 && <Separator />}
-                      </Fragment>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {result && result.settlements.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardCheck className="h-5 w-5" />
-                    清算結果
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {result.settlements.map((settlement, index) => (
-                      <div key={index} className="flex items-center justify-between py-2">
-                        <span className="font-medium">{getPersonName(settlement.from)} → {getPersonName(settlement.to)}</span>
-                        <div className="text-lg font-bold">¥{settlement.amount.toLocaleString()}</div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setIsShareModalOpen(true)}>
+                            <Share2 className="h-4 w-4 mr-2" />
+                            共有
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                            <Download className="h-4 w-4 mr-2" />
+                            CSV
+                          </Button>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {result.perPersonAmounts.map((person, index) => (
+                          <Fragment key={person.personId}>
+                            <div className="flex items-center justify-between py-2">
+                              <span className="font-medium">{person.name}</span>
+                              <div className="text-right">
+                                <div className="text-lg font-bold">¥{person.roundedAmount.toLocaleString()}</div>
+                                {person.amount !== person.roundedAmount && (
+                                  <div className="text-sm text-muted-foreground">
+                                    (¥{person.amount.toLocaleString()})
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {index < result.perPersonAmounts.length - 1 && <Separator />}
+                          </Fragment>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                  {result.settlements.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ClipboardCheck className="h-5 w-5" />
+                          清算結果
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {result.settlements.map((settlement, index) => (
+                            <div key={index} className="flex items-center justify-between py-2">
+                              <span className="font-medium">{getPersonName(settlement.from)} → {getPersonName(settlement.to)}</span>
+                              <div className="text-lg font-bold">¥{settlement.amount.toLocaleString()}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
