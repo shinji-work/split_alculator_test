@@ -1,8 +1,9 @@
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { Calculator, Users, Settings, Share2, Download, X, CreditCard, User, FileText, ClipboardCheck } from 'lucide-react'
+import { ShareModal } from '@/components/ShareModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +32,8 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [breakdownDetails, setBreakdownDetails] = useState<{ baseAmount: number; serviceCharge: number } | null>(null)
   const [amountPerPerson, setAmountPerPerson] = useState<number>(0)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const resultCardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (totalAmount > 0) {
@@ -171,31 +174,6 @@ export default function Home() {
     ))
   }
 
-  const handleShare = async () => {
-    if (!result) return
-
-    const shareText = `割り勘計算結果\n合計: ¥${result.totalWithCharge.toLocaleString()}\n\n${result.perPersonAmounts.map(p => `${p.name}: ¥${p.roundedAmount.toLocaleString()}`).join('\n')}`
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: '割り勘計算結果',
-          text: shareText
-        })
-      } catch (error) {
-        console.log('共有がキャンセルされました')
-      }
-    } else {
-      // フォールバック: クリップボードにコピー
-      try {
-        await navigator.clipboard.writeText(shareText)
-        alert('結果をクリップボードにコピーしました')
-      } catch (error) {
-        console.error('コピーに失敗しました:', error)
-      }
-    }
-  }
-
   const handleExportCSV = () => {
     if (!result) return
     const csv = resultToCsv(result)
@@ -212,6 +190,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        result={result}
+        resultRef={resultCardRef}
+      />
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800">割り勘計算機</h1>
@@ -440,7 +424,7 @@ export default function Home() {
               </Card>
             )}
             {result && (
-              <Card>
+              <Card ref={resultCardRef}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -448,7 +432,7 @@ export default function Home() {
                       計算結果
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={handleShare}>
+                      <Button variant="outline" size="sm" onClick={() => setIsShareModalOpen(true)}>
                         <Share2 className="h-4 w-4 mr-2" />
                         共有
                       </Button>
