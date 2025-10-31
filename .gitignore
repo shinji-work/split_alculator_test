@@ -128,4 +128,7 @@ workbox-*.js
 workbox-*.js.map
 
 # Local development
-*.local 
+*.local
+
+# URL shortener data
+.data/
