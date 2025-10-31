@@ -1,8 +1,12 @@
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
-import { Calculator, Users, Settings, Share2, Download, X, CreditCard, User, FileText, ClipboardCheck } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { QRCodeSVG } from 'qrcode.react'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
+import { Calculator, Users, Settings, Share2, Download, X, CreditCard, User, FileText, ClipboardCheck, Copy, Image as ImageIcon, File as FileIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,8 +33,29 @@ export default function Home() {
   const [paidBy, setPaidBy] = useState<string>('')
   const [result, setResult] = useState<CalculationResult | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isResultFromUrl, setIsResultFromUrl] = useState(false)
   const [breakdownDetails, setBreakdownDetails] = useState<{ baseAmount: number; serviceCharge: number } | null>(null)
   const [amountPerPerson, setAmountPerPerson] = useState<number>(0)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [shareUrl, setShareUrl] = useState('')
+  const searchParams = useSearchParams()
+  const resultCardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const data = searchParams.get('data')
+    if (data) {
+      try {
+        const decoded = JSON.parse(atob(data))
+        setResult(decoded)
+        setTotalAmount(decoded.totalWithCharge)
+        setPeople(decoded.perPersonAmounts.map((p: any) => ({ id: p.personId, name: p.name })))
+        setIsResultFromUrl(true)
+      } catch (error) {
+        console.error('Failed to parse result from URL', error)
+      }
+    }
+    setIsLoaded(true)
+  }, [searchParams])
 
   useEffect(() => {
     if (totalAmount > 0) {
@@ -51,7 +76,7 @@ export default function Home() {
 
   // 初回ロード時にlocalStorageから設定を復元
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !isResultFromUrl) {
       try {
         const saved = localStorage.getItem('split-calculator-settings')
         if (saved) {
@@ -67,11 +92,11 @@ export default function Home() {
       }
       setIsLoaded(true)
     }
-  }, [])
+  }, [isResultFromUrl])
 
   // 設定が変更された時にlocalStorageに保存（初回ロード後のみ）
   useEffect(() => {
-    if (isLoaded && typeof window !== 'undefined') {
+    if (isLoaded && typeof window !== 'undefined' && !isResultFromUrl) {
       try {
         const settings = {
           totalAmount,
@@ -85,7 +110,7 @@ export default function Home() {
         console.warn('Failed to save settings to localStorage:', error)
       }
     }
-  }, [isLoaded, totalAmount, serviceChargeType, serviceChargeValue, roundingMethod, people])
+  }, [isLoaded, isResultFromUrl, totalAmount, serviceChargeType, serviceChargeValue, roundingMethod, people])
 
   useEffect(() => {
     if (people.length > 0 && !people.find(p => p.id === paidBy)) {
@@ -171,29 +196,12 @@ export default function Home() {
     ))
   }
 
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!result) return
-
-    const shareText = `割り勘計算結果\n合計: ¥${result.totalWithCharge.toLocaleString()}\n\n${result.perPersonAmounts.map(p => `${p.name}: ¥${p.roundedAmount.toLocaleString()}`).join('\n')}`
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: '割り勘計算結果',
-          text: shareText
-        })
-      } catch (error) {
-        console.log('共有がキャンセルされました')
-      }
-    } else {
-      // フォールバック: クリップボードにコピー
-      try {
-        await navigator.clipboard.writeText(shareText)
-        alert('結果をクリップボードにコピーしました')
-      } catch (error) {
-        console.error('コピーに失敗しました:', error)
-      }
-    }
+    const data = btoa(JSON.stringify(result))
+    const url = `${window.location.origin}?data=${data}`
+    setShareUrl(url)
+    setIsShareModalOpen(true)
   }
 
   const handleExportCSV = () => {
@@ -208,6 +216,30 @@ export default function Home() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+  }
+
+  const handleExportImage = () => {
+    if (resultCardRef.current) {
+      html2canvas(resultCardRef.current).then(canvas => {
+        const link = document.createElement('a')
+        link.href = canvas.toDataURL('image/png')
+        link.download = 'split-result.png'
+        link.click()
+      })
+    }
+  }
+
+  const handleExportPDF = () => {
+    if (resultCardRef.current) {
+      html2canvas(resultCardRef.current).then(canvas => {
+        const imgData = canvas.toDataURL('image/png')
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const width = pdf.internal.pageSize.getWidth()
+        const height = (canvas.height * width) / canvas.width
+        pdf.addImage(imgData, 'PNG', 0, 0, width, height)
+        pdf.save('split-result.pdf')
+      })
+    }
   }
 
   return (
@@ -252,7 +284,7 @@ export default function Home() {
           </Card>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
+          <fieldset disabled={isResultFromUrl} className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -424,7 +456,7 @@ export default function Home() {
               <Calculator className="h-5 w-5 mr-2" />
               計算する
             </Button>
-          </div>
+          </fieldset>
           <div className="space-y-6">
             {!result && (
               <Card className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -440,7 +472,7 @@ export default function Home() {
               </Card>
             )}
             {result && (
-              <Card>
+              <Card ref={resultCardRef}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -451,6 +483,14 @@ export default function Home() {
                       <Button variant="outline" size="sm" onClick={handleShare}>
                         <Share2 className="h-4 w-4 mr-2" />
                         共有
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleExportImage}>
+                        <ImageIcon className="h-4 w-4 mr-2" />
+                        画像
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                        <FileIcon className="h-4 w-4 mr-2" />
+                        PDF
                       </Button>
                       <Button variant="outline" size="sm" onClick={handleExportCSV}>
                         <Download className="h-4 w-4 mr-2" />
@@ -504,6 +544,42 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {isShareModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">結果を共有</h2>
+              <button onClick={() => setIsShareModalOpen(false)} className="text-gray-500 hover:text-gray-800">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Input value={shareUrl} readOnly />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareUrl)
+                    alert('コピーしました！')
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  コピー
+                </Button>
+              </div>
+              <Button asChild className="w-full bg-[#06C755] hover:bg-[#06B54D] text-white">
+                <Link href={`https://line.me/R/msg/text/?${encodeURIComponent(shareUrl)}`} target="_blank">
+                  LINEで送る
+                </Link>
+              </Button>
+              <div className="flex justify-center">
+                <QRCodeSVG value={shareUrl} size={128} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
